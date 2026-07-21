@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>思親交辦事項</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="思親交辦事項">
+    <style>
+        :root {
+            --primary-color: #FF5A79;
+            --secondary-color: #4CAF50;
+            --line-color: #06C755;
+            --bg-color: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --text-color: #333333;
+            --accent-yellow: #FFFDE7;
+            --border-yellow: #FFE082;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #111; color: var(--text-color); margin: 0; padding: 0; display: flex; justify-content: center; }
+        .phone-container { width: 100%; max-width: 414px; background-color: var(--bg-color); min-height: 100vh; position: relative; display: flex; flex-direction: column; box-shadow: 0 0 20px rgba(0,0,0,0.5); overflow-x: hidden; }
+        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: var(--card-bg); font-size: 18px; font-weight: bold; border-bottom: 1px solid #EEE; }
+        .header-btn { font-size: 20px; cursor: pointer; width: 30px; }
+        .header-btn.center { text-align: center; width: auto; flex: 1; }
+        .app-content { flex: 1; padding: 16px; overflow-y: auto; display: none; }
+        .app-content.active { display: block; }
+        .progress-card { background-color: var(--accent-yellow); border: 2px solid var(--border-yellow); border-radius: 16px; padding: 16px; margin-bottom: 16px; position: relative; }
+        .date-string { font-size: 15px; color: #666; text-align: center; font-weight: bold; margin-bottom: 4px; }
+        .progress-main { display: flex; align-items: baseline; margin: 4px 0; }
+        .current-score { font-size: 32px; font-weight: 900; color: var(--primary-color); }
+        .total-score { font-size: 16px; color: #888; margin-left: 2px; }
+        .progress-bar-bg { background-color: #E0E0E0; height: 8px; border-radius: 4px; overflow: hidden; width: 65%; }
+        .progress-bar-fill { background-color: var(--primary-color); height: 100%; width: 0%; transition: width 0.3s; }
+        .uncle-status-box { position: absolute; right: 16px; bottom: 8px; text-align: center; width: 90px; }
+        .uncle-svg-container { width: 55px; height: 55px; margin: 0 auto; }
+        .uncle-tip { font-size: 11px; background: #FFF; border: 1px solid #DDD; border-radius: 6px; padding: 2px; display: block; margin-top: 2px; font-weight: bold; }
+        .add-task-input-zone { display: flex; gap: 8px; margin-bottom: 16px; }
+        .task-input { flex: 1; padding: 12px; border: 1px solid #CCC; border-radius: 10px; font-size: 15px; outline: none; }
+        .btn-add { background: #007AFF; color: white; border: none; padding: 0 16px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .task-list { background: var(--card-bg); border-radius: 16px; padding: 0 16px; margin-bottom: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+        .task-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F5F5F5; user-select: none; position: relative; background: #FFF; }
+        .task-item:last-child { border-bottom: none; }
+        .task-item.dragging { opacity: 0.3; background: #FFF0F2; }
+        .task-left { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; flex: 1; min-width: 0; }
+        .task-uncle-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: move; touch-action: none; }
+        .editable-text { flex: 1; cursor: pointer; padding: 6px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .task-right-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .chk-box { width: 24px; height: 24px; border: 2px solid #CCC; border-radius: 6px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+        .chk-box.checked { background-color: var(--primary-color); border-color: var(--primary-color); }
+        .chk-box.checked::after { content: "✓"; color: #FFF; font-weight: bold; font-size: 15px; }
+        .btn-delete-item { color: #FF3B30; font-size: 18px; cursor: pointer; padding: 4px; font-weight: bold; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .btn { padding: 12px; border-radius: 10px; border: none; font-size: 15px; font-weight: bold; cursor: pointer; text-align: center; }
+        .btn-pink { background: var(--primary-color); color: #FFF; }
+        .btn-green { background: var(--secondary-color); color: #FFF; }
+        .btn-line { background-color: var(--line-color); color: white; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-gray { background: #FFF; color: #555; border: 1px solid #CCC; width: 100%; margin-bottom: 12px; }
+        .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: bold; }
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; margin-bottom: 16px; }
+        .cal-day-name { font-size: 12px; color: #888; font-weight: bold; }
+        .cal-cell { aspect-ratio: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 14px; border-radius: 50%; position: relative; }
+        .cal-cell.active { background: #007AFF; color: white; font-weight: bold; }
+        .cal-dot { width: 5px; height: 5px; border-radius: 50%; position: absolute; bottom: 3px; }
+        .dot-green { background: var(--secondary-color); }
+        .history-preview-card { background: #FFF; border-radius: 14px; padding: 14px; }
+        .history-item-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #EEE; font-size: 14px; }
+        .status-v { color: var(--secondary-color); font-weight: bold; }
+        .status-x { color: var(--primary-color); font-weight: bold; }
+        .settings-group { background: #FFF; border-radius: 14px; padding: 0 16px; margin-bottom: 16px; }
+        .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #F5F5F5; font-size: 15px; }
+        .settings-label { color: #666; font-size: 13px; margin: 8px 4px; font-weight: bold; }
+        .ios-switch { position: relative; width: 46px; height: 26px; background: #E5E5EA; border-radius: 13px; cursor: pointer; transition: 0.2s; }
+        .ios-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px; background: #FFF; border-radius: 50%; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+        .ios-switch.on { background: #34C759; }
+        .ios-switch.on::after { left: 22px; }
+        .pdf-box { background: #FFF; border: 1px solid #DDD; border-radius: 12px; padding: 20px; font-family: monospace, sans-serif; }
+        .pdf-title { text-align: center; font-size: 18px; font-weight: bold; margin: 0; }
+        .pdf-subtitle { text-align: center; font-size: 14px; color: #555; margin: 4px 0 12px 0; }
+        .pdf-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+        .pdf-table th, .pdf-table td { border: 1px solid #333; padding: 6px; text-align: left; }
+        .pdf-table th { background: #F2F2F2; text-align: center; }
+        .pdf-table td.center { text-align: center; }
+        .side-menu { position: absolute; top: 0; left: -280px; width: 280px; height: 100%; background: #FFF; box-shadow: 4px 0 10px rgba(0,0,0,0.1); transition: left 0.3s ease; z-index: 999; padding: 20px; }
+        .side-menu.open { left: 0; }
+        .menu-title { font-size: 20px; font-weight: bold; margin-bottom: 20px; color: var(--primary-color); text-align: center; }
+        .menu-item { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 10px; cursor: pointer; font-weight: bold; color: #444; margin-bottom: 8px; }
+        .menu-item.active { background: #FFF0F2; color: var(--primary-color); }
+        .overlay { display: none; position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:998; }
+        .overlay.open { display: block; }
+    </style>
+</head>
+<body>
+<div class="phone-container">
+    <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+    <div class="side-menu" id="side-menu">
+        <div class="menu-title">思親交辦事項</div>
+        <div class="menu-item active" id="menu-main" onclick="switchPage('main')">🙋‍♂️ 每日檢核</div>
+        <div class="menu-item" id="menu-history" onclick="switchPage('history')">📅 歷史紀錄</div>
+        <div class="menu-item" id="menu-settings" onclick="switchPage('settings')">⚙️ 設定管理</div>
+        <div class="menu-item" id="menu-pdf" onclick="switchPage('pdf')">📄 匯出 PDF 預覽</div>
+    </div>
+    <div class="app-header">
+        <span class="header-btn" onclick="toggleMenu()">☰</span>
+        <span class="header-btn center" id="title-text">思親交辦事項</span>
+        <span class="header-btn" style="text-align:right" onclick="switchPage('settings')">⚙️</span>
+    </div>
+    <div class="app-content active" id="page-main">
+        <div class="progress-card">
+            <div class="date-string" id="main-date"></div>
+            <div class="progress-title">今日完成度</div>
+            <div class="progress-main">
+                <span class="current-score" id="done-count">0</span>
+                <span class="total-score" id="total-count">/ 12</span>
+            </div>
+            <div class="progress-card-bar" style="display:flex; align-items:center; justify-content:space-between; margin-top:4px;">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progress-fill"></div>
+                </div>
+            </div>
+            <div class="uncle-status-box">
+                <div class="uncle-svg-container" id="top-uncle-zone"></div>
+                <div class="uncle-tip" id="uncle-tip">慘了皮在癢了</div>
+            </div>
+        </div>
+        <div class="add-task-input-zone">
+            <input type="text" id="new-task-title" class="task-input" placeholder="💡 輸入太太臨時交辦事項...">
+            <button class="btn-add" onclick="addNewTask()">新增</button>
+        </div>
+        <div class="task-list" id="task-list-container"></div>
+        <button class="btn btn-line" onclick="shareToLine()">一鍵傳送 LINE 給老婆</button>
+        <div class="btn-group">
+            <button class="btn btn-pink" onclick="alert('修改與勾選進度已同步記憶！')">儲存今日記錄</button>
+            <button class="btn btn-green" onclick="switchPage('pdf')">匯出 PDF</button>
+        </div>
+        <button class="btn btn-gray" onclick="switchPage('history')">查看歷史紀錄</button>
+        <button class="btn btn-gray" onclick="clearToDefault()" style="color:#FF3B30;">回復預設 12 項任務</button>
+    </div>
+    <div class="app-content" id="page-history">
+        <div class="calendar-header"><span>◀</span> <span id="cal-month-title">2026年 7月</span> <span>▶</span></div>
+        <div class="calendar-grid" id="calendar-container"></div>
+        <div class="history-preview-card">
+            <div class="date-string" style="text-align:left; border-bottom:1px solid #DDD; padding-bottom:6px;" id="history-date-label"></div>
+            <div style="font-size:13px; margin: 8px 0; font-weight:bold; color:#777;">完成度：<span id="history-ratio">0 / 12</span></div>
+            <div id="history-items-box"></div>
+        </div>
+    </div>
+    <div class="app-content" id="page-settings">
+        <div class="settings-label">推播通知設定</div>
+        <div class="settings-group">
+            <div class="settings-row"><span>啟用每日提醒 (早上 8:00)</span><div class="ios-switch on" onclick="this.classList.toggle('on')"></div></div>
+            <div class="settings-row"><span>啟用晚間提醒 (晚上 9:00)</span><div class="ios-switch on" onclick="this.classList.toggle('on')"></div></div>
+        </div>
+        <button class="btn btn-pink" style="width:100%; background:#FFF; color:var(--primary-color); border:1px solid var(--primary-color);" onclick="clearToDefault()">清除所有資料並回復預設</button>
+    </div>
+    <div class="app-content" id="page-pdf">
+        <button class="btn btn-green" style="width:100%; margin-bottom:12px;" onclick="window.print()">點選右上分享按鈕 / 列印</button>
+        <div class="pdf-box">
+            <div class="pdf-title">思親交辦事項</div>
+            <div class="pdf-subtitle">每日檢核表</div>
+            <div style="font-size:12px;" id="pdf-date"></div>
+            <table class="pdf-table">
+                <thead><tr><th style="width:15%">項目</th><th>內容</th><th style="width:20%">完成</th></tr></thead>
+                <tbody id="pdf-table-body"></tbody>
+            </table>
+            <div style="font-size:12px; font-weight:bold; margin-top:8px;" id="pdf-summary"></div>
+            <div style="font-size:12px; margin-top:14px;">備註：__________________________</div>
+            <div style="font-size:12px; margin-top:14px;">檢核人：________________________</div>
+        </div>
+    </div>
+</div>
+<script>
+    const DEAR_UNCLE_EMOJI = {
+        scared: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M36 36 Q50 33 64 36 M38 41 Q50 38 62 41" stroke="#8D6E63" stroke-width="2" fill="none"/><path d="M24 45 Q22 35 30 30 M76 45 Q78 35 70 30" stroke="#333" stroke-width="3" fill="none"/><path d="M44 27 Q43 14 38 7 M50 27 Q51 12 52 5" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><circle cx="38" cy="53.5" r="2.5" fill="#222"/><circle cx="62" cy="53.5" r="2.5" fill="#222"/><path d="M20 50 Q12 65 18 72 Q22 65 20 50" fill="#29B6F6" stroke="#0288D1" stroke-width="1"/><path d="M80 52 Q88 67 82 74 Q78 67 80 52" fill="#29B6F6" stroke="#0288D1" stroke-width="1"/><path d="M42 71 Q50 63 58 71 Q50 81 42 71 Z" fill="#E57373" stroke="#222" stroke-width="2.5"/></svg>`,
+        distressed: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M43 27 Q41 16 36 9 M50 27 Q49 14 47 7" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><path d="M34 54 Q38 51 42 54 M58 54 Q62 51 66 54" stroke="#222" stroke-width="2.5" fill="none"/><path d="M30 40 L42 45 M70 40 L58 45" stroke="#222" stroke-width="3.5"/><path d="M68 33 Q72 40 68 44 Q64 40 68 33 Z" fill="#29B6F6" stroke="#0288D1" stroke-width="1"/><path d="M40 73 Q50 67 60 72" stroke="#222" stroke-width="3" fill="none"/></svg>`,
+        winner: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M45 26 Q38 18 30 20 M50 27 Q54 13 60 15" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="#333" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="#333" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><path d="M82 32 L84 36 L89 37 L84 38 L82 42 L80 38 L75 37 L80 36 Z" fill="#FFD54F"/><path d="M42 68 Q52 74 62 66" stroke="#222" stroke-width="3.5" fill="none"/></svg>`
+    };
+    const defaultTasks = [{id:"t1",text:"關沙發電源"},{id:"t2",text:"關電風扇電源"},{id:"t3",text:"關電腦電源"},{id:"t4",text:"關前後陽台電源"},{id:"t5",text:"打開浴室拉門"},{id:"t6",text:"吸地板"},{id:"t7",text:"拖地板開雙倍 (兩次!)"},{id:"t8",text:"擦沙發"},{id:"t9",text:"擦桌子"},{id:"t10",text:"擦床頭櫃"},{id:"t11",text:"擦天花板"},{id:"t12",text:"洗廁所"}];
+    let currentTasks = JSON.parse(localStorage.getItem('sinqin_task_struct')) || defaultTasks;
+    let savedStatus = JSON.parse(localStorage.getItem('sinqin_tasks_status')) || {};
+
+    function initApp() {
+        const days = ['日','一','二','三','四','五','六']; const now = new Date();
+        const dateStr = now.getFullYear() + " / " + String(now.getMonth() + 1).padStart(2,'0') + " / " + String(now.getDate()).padStart(2,'0') + " (" + days[now.getDay()] + ")";
+        document.getElementById('main-date').innerText = dateStr;
+        document.getElementById('history-date-label').innerText = dateStr;
+        document.getElementById('pdf-date').innerText = "日期：" + now.getFullYear() + " / " + String(now.getMonth() + 1).padStart(2,'0') + " / " + String(now.getDate()).padStart(2,'0');
+        renderMainTasks(); renderCalendar(); renderHistoryPreview(); initDragAndDrop();
+    }
+
+    function toggleMenu() { document.getElementById('side-menu').classList.toggle('open'); document.getElementById('overlay').classList.toggle('open'); }
+    
+    function switchPage(pageId) {
+        document.querySelectorAll('.app-content').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+        document.getElementById('page-' + pageId).classList.add('active');
+        if(document.getElementById('menu-' + pageId)) document.getElementById('menu-' + pageId).classList.add('active');
+        document.getElementById('title-text').innerText = { main: '思親交辦事項', history: '歷史紀錄', settings: '設定', pdf: 'PDF 預覽' }[pageId];
+        document.getElementById('side-menu').classList.remove('open'); document.getElementById('overlay').classList.remove('open');
+        if(pageId === 'pdf') renderPDF();
+    }
+
+    function getUncleIconHTML(isChecked, done, total) {
+        if (isChecked || (total > 0 && done === total)) return DEAR_UNCLE_EMOJI.winner;
+        if (total > 0 && done >= Math.floor(total * 0.6)) return DEAR_UNCLE_EMOJI.distressed;
+        return DEAR_UNCLE_EMOJI.scared;
+    }
+
+    function renderMainTasks() {
+        const container = document.getElementById('task-list-container'); container.innerHTML = '';
+        const total = currentTasks.length; const done = currentTasks.filter(task => savedStatus[task.id]).length;
+        document.getElementById('total-count').innerText = "/ " + total;
+        
+        if (total === 0) { container.innerHTML = `<div style="text-align:center; color:#999; padding:20px; font-size:14px;">🎉 大叔解脫了！目前沒有交辦事項。</div>`; }
+        
+        currentTasks.forEach(task => {
+            const isChecked = savedStatus[task.id] ? 'checked' : '';
+            const currentUncleEmoji = getUncleIconHTML(savedStatus[task.id], done, total);
+            // 採用直覺穩定的 onclick="editTaskDirectly('id')"
+            container.innerHTML += `
+                <div class="task-item" id="item-${task.id}" draggable="true" data-id="${task.id}">
+                    <div class="task-left">
+                        <div class="task-uncle-icon">${currentUncleEmoji}</div>
+                        <span class="editable-text" onclick="editTaskDirectly('${task.id}')">${task.text}</span>
+                    </div>
+                    <div class="task-right-actions">
+                        <div class="chk-box ${isChecked}" onclick="toggleTask('${task.id}')"></div>
+                        <div class="btn-delete-item" onclick="deleteTask('${task.id}')">✕</div>
+                    </div>
+                </div>`;
+        });
+
+        document.getElementById('done-count').innerText = done;
+        const percent = total > 0 ? (done / total) * 100 : 100;
+        document.getElementById('progress-fill').style.width = percent + "%";
+        
+        const topUncleZone = document.getElementById('top-uncle-zone'); 
+        const tipEl = document.getElementById('uncle-tip');
+        if (total === 0 || done === total) { topUncleZone.innerHTML = DEAR_UNCLE_EMOJI.winner; tipEl.innerText = "安全過關！"; }
+        else if (done >= Math.floor(total * 0.6)) { topUncleZone.innerHTML = DEAR_UNCLE_EMOJI.distressed; tipEl.innerText = "太太在盯著了"; }
+        else { topUncleZone.innerHTML = DEAR_UNCLE_EMOJI.scared; tipEl.innerText = "慘了皮在癢了"; }
+    }
+
+    // 核心修正：點擊文字直接改文字（相容所有手機與電腦，百分之百不失靈）
+    function editTaskDirectly(id) {
+        const task = currentTasks.find(t => t.id === id);
+        if(!task) return;
+        
+        const newText = prompt("請修改交辦事項內容：", task.text);
+        if(newText !== null && newText.trim() !== "") {
+            task.text = newText.trim();
+            saveStructureToStorage();
+            renderMainTasks();
+            renderHistoryPreview();
+        }
+    }
+
+    function initDragAndDrop() {
+        const container = document.getElementById('task-list-container'); let activeItem = null;
+        container.addEventListener('dragstart', (e) => { const item = e.target.closest('.task-item'); if(item) item.classList.add('dragging'); });
+        container.addEventListener('dragend', (e) => { const item = e.target.closest('.task-item'); if(item) { item.classList.remove('dragging'); reorderTasksInArray(); } });
+        container.addEventListener('touchstart', (e) => { if (e.target.closest('.task-uncle-icon')) { activeItem = e.target.closest('.task-item'); activeItem.classList.add('dragging'); } }, { passive: true });
+        container.addEventListener('touchmove', (e) => { if (!activeItem) return; if (e.cancelable) e.preventDefault(); const touch = e.touches[0]; const afterElement = getDragAfterElement(container, touch.clientY); if (afterElement == null) { container.appendChild(activeItem); } else { container.insertBefore(activeItem, afterElement); } }, { passive: false });
+        container.addEventListener('touchend', (e) => { if (activeItem) { activeItem.classList.remove('dragging'); activeItem = null; reorderTasksInArray(); } });
+        container.addEventListener('dragover', (e) => { e.preventDefault(); const afterElement = getDragAfterElement(container, e.clientY); const draggingItem = document.querySelector('.dragging'); if (draggingItem) { if (afterElement == null) { container.appendChild(draggingItem); } else { container.insertBefore(draggingItem, afterElement); } } });
+    }
+
+    function getDragAfterElement(container, y) { const draggableElements = [...container.querySelectorAll('.task-item:not(.dragging)')]; return draggableElements.reduce((closest, child) => { const box = child.getBoundingClientRect(); const offset = y - box.top - box.height / 2; if (offset < 0 && offset > closest.offset) { return { offset: offset, element: child }; } else { return closest; } }, { offset: Number.NEGATIVE_INFINITY }).element; }
+    
+    function reorderTasksInArray() { const renderedItems = [...document.querySelectorAll('#task-list-container .task-item')]; const newOrderedTasks = []; renderedItems.forEach(item => { const id = item.getAttribute('data-id'); const found = currentTasks.find(t => t.id === id); if(found) newOrderedTasks.push(found); }); currentTasks = newOrderedTasks; saveStructureToStorage(); }
+    
+    function shareToLine() {
+        const total = currentTasks.length; const done = currentTasks.filter(task => savedStatus[task.id]).length; const pct = total > 0 ? Math.round((done / total) * 100) : 100;
+        const now = new Date(); const dateString = now.getFullYear() + "/" + (now.getMonth()+1) + "/" + now.getDate();
+        let lineMessage = `【思親交辦事項成果報告】\n📅 報告日期：${dateString}\n📊 今日大叔完成度：${done} / ${total} (${pct}%)\n------------------------\n`;
+        currentTasks.forEach((task, index) => { lineMessage += `${index + 1}. ${task.text} ➔ ${savedStatus[task.id] ? "已完成" : "未完成"}\n`; });
+        lineMessage += `------------------------\n`; lineMessage += (done === total) ? `😎 報告老婆！今天大叔表現完美，所有交辦已全數過關！(今晚申請可以安心打電動)` : `😱 大叔目前正在加緊趕工中！請老婆大人手手留情！`;
+        window.location.href = "https://line.me/R/msg/text/?" + encodeURIComponent(lineMessage);
+    }
+
+    function addNewTask() {
+        const inputEl = document.getElementById('new-task-title'); const text = inputEl.value.trim(); if(!text) { alert("請先輸入任務內容喔！"); return; }
+        const newId = "t_" + Date.now(); currentTasks.push({ id: newId, text: text }); savedStatus[newId] = false;
+        saveStructureToStorage(); inputEl.value = ''; renderMainTasks(); renderHistoryPreview();
+    }
+
+    function deleteTask(id) { currentTasks = currentTasks.filter(task => task.id !== id); delete savedStatus[id]; saveStructureToStorage(); renderMainTasks(); renderHistoryPreview(); }
+    function toggleTask(id) { savedStatus[id] = !savedStatus[id]; localStorage.setItem('sinqin_tasks_status', JSON.stringify(savedStatus)); renderMainTasks(); renderHistoryPreview(); }
+    function saveStructureToStorage() { localStorage.setItem('sinqin_task_struct', JSON.stringify(currentTasks)); localStorage.setItem('sinqin_tasks_status', JSON.stringify(savedStatus)); }
+    function clearToDefault() { if(confirm("確定要回復最原始的 12 項打掃關燈任務嗎？")) { currentTasks = [...defaultTasks]; savedStatus = {}; saveStructureToStorage(); renderMainTasks(); renderHistoryPreview(); } }
+    function renderCalendar() { const container = document.getElementById('calendar-container'); container.innerHTML = ''; ['日','一','二','三','四','五','六'].forEach(d => container.innerHTML += `<div class="cal-day-name">${d}</div>`); for(let i=1; i<=31; i++) { let dotHtml = i === 18 ? '<div class="cal-dot dot-green"></div>' : ''; container.innerHTML += `<div class="cal-cell ${i===18?'active':''}">${i}${dotHtml}</div>`; } }
+    function renderHistoryPreview() { const box = document.getElementById('history-items-box'); box.innerHTML = ''; const total = currentTasks.length; const done = currentTasks.filter(task => savedStatus[task.id]).length; document.getElementById('history-ratio').innerText = done + " / " + total; currentTasks.forEach(task => { box.innerHTML += `<div class="history-item-row"><span>${task.text}</span>${savedStatus[task.id] ? '<span class="status-v">✓ 完成</span>' : '<span class="status-x">✕ 未完</span>'}</div>`; }); }
+    function renderPDF() { const tbody = document.getElementById('pdf-table-body'); tbody.innerHTML = ''; const total = currentTasks.length; const done = currentTasks.filter(task => savedStatus[task.id]).length; currentTasks.forEach((task, index) => { tbody.innerHTML += `<tr><td class="center">${index + 1}</td><td>${task.text}</td><td class="center" style="font-weight:bold; color:${savedStatus[task.id]?'green':'red'}">${savedStatus[task.id]?'✓':'✕'}</td></tr>`; }); const pct = total > 0 ? Math.round((done / total) * 100) : 100; document.getElementById('pdf-summary').innerText = "完成度：" + done + " / " + total + " (" + pct + "%)"; }
+    
+    initApp();
+</script>
+</body>
+</html>
