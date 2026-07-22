@@ -33,7 +33,7 @@
         .total-score { font-size: 16px; color: #888; margin-left: 2px; }
         .progress-bar-bg { background-color: #E0E0E0; height: 8px; border-radius: 4px; overflow: hidden; width: 65%; }
         .progress-bar-fill { background-color: var(--primary-color); height: 100%; width: 0%; transition: width 0.3s; }
-        .uncle-status-box { position: absolute; right: 16px; bottom: 8px; text-align: center; width: 90px; }
+        .uncle-status-box { position: absolute; right: 16px; bottom: 8px; text-align: center; width: 95px; }
         .uncle-svg-container { width: 55px; height: 55px; margin: 0 auto; }
         .uncle-tip { font-size: 11px; background: #FFF; border: 1px solid #DDD; border-radius: 6px; padding: 2px; display: block; margin-top: 2px; font-weight: bold; }
         .add-task-input-zone { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -56,6 +56,7 @@
         .btn-pink { background: var(--primary-color); color: #FFF; }
         .btn-green { background: var(--secondary-color); color: #FFF; }
         .btn-line { background-color: var(--line-color); color: white; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-clear { background: #FF9500; color: #FFF; width: 100%; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .btn-gray { background: #FFF; color: #555; border: 1px solid #CCC; width: 100%; margin-bottom: 12px; }
         .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-weight: bold; }
         .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; margin-bottom: 16px; }
@@ -109,7 +110,7 @@
     <div class="app-content active" id="page-main">
         <div class="progress-card">
             <div class="date-string" id="main-date"></div>
-            <div class="progress-title">今日完成度</div>
+            <div class="progress-title" id="mode-tip">今日完成度</div>
             <div class="progress-main">
                 <span class="current-score" id="done-count">0</span>
                 <span class="total-score" id="total-count">/ 12</span>
@@ -129,7 +130,11 @@
             <button class="btn-add" onclick="addNewTask()">新增</button>
         </div>
         <div class="task-list" id="task-list-container"></div>
+        
+        <!-- ✨ 橘色一鍵清除勾選按鈕 -->
+        <button class="btn btn-clear" onclick="clearAllChecks()">🧹 一鍵清除今日勾選</button>
         <button class="btn btn-line" onclick="shareToLine()">一鍵傳送 LINE 給老婆</button>
+        
         <div class="btn-group">
             <button class="btn btn-pink" onclick="alert('修改與勾選進度已同步記憶！')">儲存今日記錄</button>
             <button class="btn btn-green" onclick="switchPage('pdf')">匯出 PDF</button>
@@ -173,19 +178,29 @@
 <script>
     const DEAR_UNCLE_EMOJI = {
         scared: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M36 36 Q50 33 64 36 M38 41 Q50 38 62 41" stroke="#8D6E63" stroke-width="2" fill="none"/><path d="M24 45 Q22 35 30 30 M76 45 Q78 35 70 30" stroke="#333" stroke-width="3" fill="none"/><path d="M44 27 Q43 14 38 7 M50 27 Q51 12 52 5" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><circle cx="38" cy="53.5" r="2.5" fill="#222"/><circle cx="62" cy="53.5" r="2.5" fill="#222"/><path d="M20 50 Q12 65 18 72 Q22 65 20 50" fill="#29B6F6" stroke="#0288D1" stroke-width="1"/><path d="M80 52 Q88 67 82 74 Q78 67 80 52" fill="#29B6F6" stroke="#0288D1" stroke-width="1"/><path d="M42 71 Q50 63 58 71 Q50 81 42 71 Z" fill="#E57373" stroke="#222" stroke-width="2.5"/></svg>`,
-        distressed: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M43 27 Q41 16 36 9 M50 27 Q49 14 47 7" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><path d="M34 54 Q38 51 42 54 M58 54 Q62 51 66 54" stroke="#222" stroke-width="2.5" fill="none"/><path d="M30 40 L42 45 M70 40 L58 45" stroke="#222" stroke-width="3.5"/><path d="M68 33 Q72 40 68 44 Q64 40 68 33 Z" fill="#29B6F6" stroke="#0288D1" stroke-width="1"/><path d="M40 73 Q50 67 60 72" stroke="#222" stroke-width="3" fill="none"/></svg>`,
+        sweating: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M43 27 Q41 16 36 9 M50 27 Q49 14 47 7" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><circle cx="38" cy="53.5" r="2.5" fill="#222"/><circle cx="62" cy="53.5" r="2.5" fill="#222"/><path d="M30 40 L42 45 M70 40 L58 45" stroke="#222" stroke-width="3.5"/><path d="M68 33 Q72 40 68 44 Q64 40 68 33 Z" fill="#29B6F6" stroke="#0288D1" stroke-width="1"/><path d="M40 73 Q50 67 60 72" stroke="#222" stroke-width="3" fill="none"/></svg>`,
+        fighting: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M43 27 Q41 16 36 9 M50 27 Q49 14 47 7" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><path d="M30 45 L42 40 M70 45 L58 40" stroke="#222" stroke-width="3.5"/><line x1="38" y1="71" x2="62" y2="71" stroke="#222" stroke-width="3.5"/><line x1="43" y1="67" x2="43" y2="75" stroke="#222" stroke-width="2"/><line x1="51" y1="67" x2="51" y2="75" stroke="#222" stroke-width="2"/><line x1="57" y1="67" x2="57" y2="75" stroke="#222" stroke-width="2"/></svg>`,
+        skeptical: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M43 27 Q41 16 36 9 M50 27 Q49 14 47 7" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><circle cx="34" cy="52" r="2.5" fill="#222"/><circle cx="58" cy="52" r="2.5" fill="#222"/><path d="M30 40 L42 40 M70 38 L58 44" stroke="#222" stroke-width="3.5"/><path d="M42 72 L58 68" stroke="#222" stroke-width="3" fill="none"/></svg>`,
+        relieved: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M45 26 Q38 18 30 20 M50 27 Q54 13 60 15" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="none" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><path d="M34 53 Q38 48 42 53 M58 53 Q62 48 66 53" stroke="#222" stroke-width="2.5" fill="none"/><path d="M40 68 Q50 78 60 68" stroke="#222" stroke-width="3" fill="none"/></svg>`,
         winner: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="22" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="78" cy="55" r="6" fill="#FFD1A4" stroke="#222" stroke-width="2.5"/><circle cx="50" cy="55" r="28" fill="#FFD1A4" stroke="#222" stroke-width="3"/><path d="M45 26 Q38 18 30 20 M50 27 Q54 13 60 15" stroke="#222" stroke-width="2.5" fill="none"/><rect x="29" y="46" width="18" height="15" rx="4" fill="#333" stroke="#222" stroke-width="3.5"/><rect x="53" y="46" width="18" height="15" rx="4" fill="#333" stroke="#222" stroke-width="3.5"/><line x1="47" y1="52" x2="53" y2="52" stroke="#222" stroke-width="3.5"/><path d="M82 32 L84 36 L89 37 L84 38 L82 42 L80 38 L75 37 L80 36 Z" fill="#FFD54F"/><path d="M42 68 Q52 74 62 66" stroke="#222" stroke-width="3.5" fill="none"/></svg>`
     };
-    const defaultTasks = [{id:"t1",text:"關沙發電源"},{id:"t2",text:"關電風扇電源"},{id:"t3",text:"關電腦電源"},{id:"t4",text:"關前後陽台電源"},{id:"t5",text:"打開浴室拉門"},{id:"t6",text:"吸地板"},{id:"t7",text:"拖地板開雙倍 (兩次!)"},{id:"t8",text:"擦沙發"},{id:"t9",text:"擦桌子"},{id:"t10",text:"擦床頭櫃"},{id:"t11",text:"擦天花板"},{id:"t12",text:"洗廁所"}];
+
+    const defaultTasks = [{id:"t1",text:"關沙發電源"},{id:"t2",text:"關電風扇電源"},{id:"t3",text:"關電腦電源"},{id:"t4",text:"關前後陽台電源"},{id:"t5",text:"打開浴室拉門"},{id:"t6",text:"吸地板"},{id:"t7",text:"拖地板 (兩次!)"},{id:"t8",text:"擦沙發"},{id:"t9",text:"擦桌子"},{id:"t10",text:"擦床頭櫃"},{id:"t11",text:"擦天花板"},{id:"t12",text:"洗廁所"}];
     let currentTasks = JSON.parse(localStorage.getItem('sinqin_task_struct')) || defaultTasks;
     let savedStatus = JSON.parse(localStorage.getItem('sinqin_tasks_status')) || {};
 
+    let isWeekend = false;
+
     function initApp() {
         const days = ['日','一','二','三','四','五','六']; const now = new Date();
-        const dateStr = now.getFullYear() + " / " + String(now.getMonth() + 1).padStart(2,'0') + " / " + String(now.getDate()).padStart(2,'0') + " (" + days[now.getDay()] + ")";
+        const dayIdx = now.getDay();
+        isWeekend = (dayIdx === 0 || dayIdx === 6); // 判斷是否為週六或週日
+        
+        const dateStr = now.getFullYear() + " / " + String(now.getMonth() + 1).padStart(2,'0') + " / " + String(now.getDate()).padStart(2,'0') + " (" + days[dayIdx] + ")";
         document.getElementById('main-date').innerText = dateStr;
         document.getElementById('history-date-label').innerText = dateStr;
         document.getElementById('pdf-date').innerText = "日期：" + now.getFullYear() + " / " + String(now.getMonth() + 1).padStart(2,'0') + " / " + String(now.getDate()).padStart(2,'0');
+        
         renderMainTasks(); renderCalendar(); renderHistoryPreview(); initDragAndDrop();
     }
 
@@ -201,10 +216,28 @@
         if(pageId === 'pdf') renderPDF();
     }
 
-    function getUncleIconHTML(isChecked, done, total) {
-        if (isChecked || (total > 0 && done === total)) return DEAR_UNCLE_EMOJI.winner;
-        if (total > 0 && done >= Math.floor(total * 0.6)) return DEAR_UNCLE_EMOJI.distressed;
-        return DEAR_UNCLE_EMOJI.scared;
+    // 智能表情與台詞派發 (結合平日/假日邏輯)
+    function getUncleState(done, total) {
+        if (total === 0) return { icon: DEAR_UNCLE_EMOJI.winner, tip: "無事一身輕！" };
+        
+        if (done === total) return { icon: DEAR_UNCLE_EMOJI.winner, tip: "完美達成！安全過關！" };
+        
+        // 平日邏輯 (一到五)：滿 5 項就算完成交辦
+        if (!isWeekend) {
+            if (done >= 5) return { icon: DEAR_UNCLE_EMOJI.relieved, tip: "平日5項合格！可打電動囉" };
+            if (done >= 3) return { icon: DEAR_UNCLE_EMOJI.fighting, tip: "快好了！再拼兩項！" };
+            if (done >= 1) return { icon: DEAR_UNCLE_EMOJI.sweating, tip: "太太在盯著了..." };
+            return { icon: DEAR_UNCLE_EMOJI.scared, tip: "慘了皮在癢了" };
+        } 
+        // 假日邏輯 (六、日)：需要高標準全面大掃打
+        else {
+            const pct = (done / total) * 100;
+            if (pct >= 90) return { icon: DEAR_UNCLE_EMOJI.relieved, tip: "看到曙光了！" };
+            if (pct >= 70) return { icon: DEAR_UNCLE_EMOJI.skeptical, tip: "真的有需要這項？" };
+            if (pct >= 45) return { icon: DEAR_UNCLE_EMOJI.fighting, tip: "假日大掃除，大叔拚了！" };
+            if (pct >= 20) return { icon: DEAR_UNCLE_EMOJI.sweating, tip: "太太盯著了..." };
+            return { icon: DEAR_UNCLE_EMOJI.scared, tip: "慘了皮在癢了" };
+        }
     }
 
     function renderMainTasks() {
@@ -212,16 +245,24 @@
         const total = currentTasks.length; const done = currentTasks.filter(task => savedStatus[task.id]).length;
         document.getElementById('total-count').innerText = "/ " + total;
         
+        if (!isWeekend) {
+            document.getElementById('mode-tip').innerText = "平日目標：前5項合格 / 12項完美";
+        } else {
+            document.getElementById('mode-tip').innerText = "假日模式：全面大掃除大作戰";
+        }
+
         if (total === 0) { container.innerHTML = `<div style="text-align:center; color:#999; padding:20px; font-size:14px;">🎉 大叔解脫了！目前沒有交辦事項。</div>`; }
         
+        const currentGlobalState = getUncleState(done, total);
+
         currentTasks.forEach(task => {
             const isChecked = savedStatus[task.id] ? 'checked' : '';
-            const currentUncleEmoji = getUncleIconHTML(savedStatus[task.id], done, total);
-            // 採用直覺穩定的 onclick="editTaskDirectly('id')"
+            const itemUncleIcon = savedStatus[task.id] ? DEAR_UNCLE_EMOJI.winner : currentGlobalState.icon;
+
             container.innerHTML += `
                 <div class="task-item" id="item-${task.id}" draggable="true" data-id="${task.id}">
                     <div class="task-left">
-                        <div class="task-uncle-icon">${currentUncleEmoji}</div>
+                        <div class="task-uncle-icon">${itemUncleIcon}</div>
                         <span class="editable-text" onclick="editTaskDirectly('${task.id}')">${task.text}</span>
                     </div>
                     <div class="task-right-actions">
@@ -235,24 +276,26 @@
         const percent = total > 0 ? (done / total) * 100 : 100;
         document.getElementById('progress-fill').style.width = percent + "%";
         
-        const topUncleZone = document.getElementById('top-uncle-zone'); 
-        const tipEl = document.getElementById('uncle-tip');
-        if (total === 0 || done === total) { topUncleZone.innerHTML = DEAR_UNCLE_EMOJI.winner; tipEl.innerText = "安全過關！"; }
-        else if (done >= Math.floor(total * 0.6)) { topUncleZone.innerHTML = DEAR_UNCLE_EMOJI.distressed; tipEl.innerText = "太太在盯著了"; }
-        else { topUncleZone.innerHTML = DEAR_UNCLE_EMOJI.scared; tipEl.innerText = "慘了皮在癢了"; }
+        document.getElementById('top-uncle-zone').innerHTML = currentGlobalState.icon;
+        document.getElementById('uncle-tip').innerText = currentGlobalState.tip;
     }
 
-    // 核心修正：點擊文字直接改文字（相容所有手機與電腦，百分之百不失靈）
+    // ✨ 新增：一鍵清除今日所有勾選
+    function clearAllChecks() {
+        if(confirm("確定要一鍵清除今天所有的勾選嗎？朝閔又要重新開始加油囉！")) {
+            savedStatus = {};
+            localStorage.setItem('sinqin_tasks_status', JSON.stringify(savedStatus));
+            renderMainTasks();
+            renderHistoryPreview();
+        }
+    }
+
     function editTaskDirectly(id) {
-        const task = currentTasks.find(t => t.id === id);
-        if(!task) return;
-        
+        const task = currentTasks.find(t => t.id === id); if(!task) return;
         const newText = prompt("請修改交辦事項內容：", task.text);
         if(newText !== null && newText.trim() !== "") {
             task.text = newText.trim();
-            saveStructureToStorage();
-            renderMainTasks();
-            renderHistoryPreview();
+            saveStructureToStorage(); renderMainTasks(); renderHistoryPreview();
         }
     }
 
@@ -273,9 +316,19 @@
     function shareToLine() {
         const total = currentTasks.length; const done = currentTasks.filter(task => savedStatus[task.id]).length; const pct = total > 0 ? Math.round((done / total) * 100) : 100;
         const now = new Date(); const dateString = now.getFullYear() + "/" + (now.getMonth()+1) + "/" + now.getDate();
-        let lineMessage = `【思親交辦事項成果報告】\n📅 報告日期：${dateString}\n📊 今日大叔完成度：${done} / ${total} (${pct}%)\n------------------------\n`;
+        
+        let lineMessage = `【思親交辦事項成果報告】\n📅 報告日期：${dateString} (${isWeekend ? '假日模式' : '平日模式'})\n📊 今日大叔完成度：${done} / ${total} (${pct}%)\n------------------------\n`;
         currentTasks.forEach((task, index) => { lineMessage += `${index + 1}. ${task.text} ➔ ${savedStatus[task.id] ? "已完成" : "未完成"}\n`; });
-        lineMessage += `------------------------\n`; lineMessage += (done === total) ? `😎 報告老婆！今天大叔表現完美，所有交辦已全數過關！(今晚申請可以安心打電動)` : `😱 大叔目前正在加緊趕工中！請老婆大人手手留情！`;
+        lineMessage += `------------------------\n`;
+        
+        if (done === total) {
+            lineMessage += `😎 報告老婆！今天朝閔表現完美（12項全過），今晚申請安心打電動 🎮！`;
+        } else if (!isWeekend && done >= 5) {
+            lineMessage += `😌 報告老婆！今天平日目標 5 項已達標，安全過關！`;
+        } else {
+            lineMessage += `😱 朝閔目前正在加緊趕工中！請老婆大人手下留情！`;
+        }
+        
         window.location.href = "https://line.me/R/msg/text/?" + encodeURIComponent(lineMessage);
     }
 
